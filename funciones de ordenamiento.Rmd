@@ -1,0 +1,349 @@
+
+Iniciando Datos
+```{r}
+library(readxl) 
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+
+summary(factor(entidades_planea2017$claveEntidad))
+entidades_planea2017 <- rename(entidades_planea2017, nombreEscuela = "NOMBRE DE LA ESCUELA")
+entidades_planea2017 <- rename(entidades_planea2017, claveEntidad = "claveEscuela")
+entidades_planea2017 <- rename(entidades_planea2017, claveEscuela = "CLAVE DE LA ESCUELA" )
+entidades_planea2017 <- rename(entidades_planea2017, alumnosProgramados = "ALUMNOS  PROGRAMADOS")
+
+
+count(entidades_planea2017, TURNO)
+count(entidades_planea2017, ENTIDAD)
+total.entidades.turno <- count(entidades_planea2017, ENTIDAD, TURNO)
+
+filter(total.entidades.turno, ENTIDAD =="VERACRUZ")
+
+datos.generales <- entidades_planea2017
+
+mutate(entidades_planea2017, cantidadEscuelas = 1)
+escuelas.turno <- mutate(group_by(datos.generales,ENTIDAD,TURNO), total_escuelas = sum(cantidadEscuelas))
+datos.generales <- mutate(datos.generales, cantidadEscuelas = 1)
+
+datos.generales <- mutate(datos.generales, total_escuelas_evaluadas = sum(cantidadEscuelas))
+
+escuelas.turno$total_escuelas
+datos.generales$total_escuelas_evaluadas
+
+
+#escuelas.turno <- mutate(group_by(entidades_planea2017, ENTIDAD, TURNO), cantidad_escuelas = count())
+
+```
+
+```{r}
+datos.generales <- rename(datos.generales, claveEntidadPlanea = claveEntidad)
+datos.generales <- rename(datos.generales, claveEscuela = "CLAVE DE LA ESCUELA" )
+```
+
+```{r poblacion mexico}
+library(readxl)
+dataPoblacion <- read_excel("Poblacion_01.xlsx", sheet = "Tabulado")
+datos.generales <-
+  merge(datos.generales, 
+        dataPoblacion,
+        by.x = "claveEntidadPlanea",
+        by.y= "claveentidad", 
+        all.x = TRUE)
+names(datos.generales)
+
+
+
+borrar <- c("..2.x","...3.x","totalpoblacion.x", "...2.y", "...3.y", "totalpoblacion.y","...2" , "...3","...2.x", "totalpoblacion")
+datos.generales <- datos.generales[,!(names(datos.generales) %in% borrar)]
+
+datos.generales$totalpoblacion
+```
+
+```{r agregar region}
+data.region <- datos.generales %>% select(claveEntidadPlanea,ENTIDAD) %>% distinct() %>% as.data.frame()
+
+data.region
+
+region.norte <- c("BAJA CALIFORNIA", "SONORA", "CHIHUAHUA", "COAHUILA", "NUEVO LEON", "TAMAULIPAS")
+region.norteoccidente <- c("BAJA CALIFORNIA SUR", "SINALOA", "NAYARIT", "DURANGO", "ZACATECAS")
+region.centronorte <- c("JALISCO", "AGUASCALIENTES", "COLIMA", "MICHOACAN", "SAN LUIS POTOSI")
+region.centro <- c("GUANAJUATO", "QUERETARO", "HIDALGO", "MEXICO", "CIUDAD DE MEXICO", "MORELOS", "TLAXCALA", "PUEBLA")
+region.sur <- c("GUERRERO", "OAXACA", "CHIAPAS", "VERACRUZ", "TABASCO", "CAMPECHE", "YUCATAN", "QUINTANA ROO")
+
+data.region <- mutate (
+  data.region, region = ifelse(ENTIDAD %in% region.norte, "NORTE",
+                                ifelse(ENTIDAD %in% region.norteoccidente, "NORTE OCCIDENTE",
+                                       ifelse(ENTIDAD %in% region.centro, "CENTRO", 
+                                              ifelse(ENTIDAD %in% region.centronorte, "CENTRO NORTE", "SUR")))))
+data.region
+
+datos.generales <- mutate(datos.generales, region = ifelse(ENTIDAD %in% region.norte, "NORTE", ifelse(ENTIDAD %in% region.norteoccidente, "NORTE OCCIDENTE", ifelse(ENTIDAD %in% region.centro, "CENTRO", ifelse(ENTIDAD %in% region.centronorte, "CENTRO NORTE", "SUR")))))
+
+datos.generales
+```
+
+```{r proporcionEntidad}
+total.entidad <- count(datos.generales, ENTIDAD)
+
+total.entidad <- mutate(total.entidad, porcentaje = n*100/sum(n))
+total.entidad
+
+graficas.punto.entidad <- qplot(x= ENTIDAD, y=n, data = total.entidad, colour = I("purple") )
+graficas.punto.entidad + theme(axis.text = element_text(angle=90))
+```
+
+
+```{r totalRegion}
+total.region.entidad <-count(datos.generales, region, ENTIDAD)
+total.region <-count(datos.generales, region)
+total.region.entidad
+total.region
+sum(total.region$n)
+
+```
+```{r analisis}
+datos.generales <- mutate(datos.generales, cantidadEscuelas =1)
+datos.generales <- mutate(datos.generales, total_escuelas_evaluadas = sum(cantidadEscuelas))
+sum(datos.generales$`ALUMNOS EVALUADOS LENGUAJE Y COMUNICACIÓN`)
+sum(datos.generales$`ALUMNOS EVALUADOS MATEMÁTICAS`)
+mean(datos.generales$`ALUMNOS EVALUADOS LENGUAJE Y COMUNICACIÓN`)
+mean(datos.generales$`ALUMNOS EVALUADOS MATEMÁTICAS`)
+median(datos.generales$`ALUMNOS EVALUADOS LENGUAJE Y COMUNICACIÓN`)
+median(datos.generales$`ALUMNOS EVALUADOS MATEMÁTICAS`)
+
+(datos.generales$total_escuelas_evaluadas)
+
+```
+
+```{r graficoEntidad}
+grafico.entidad <- ggplot(total.entidad)
+grafico.entidad <- grafico.entidad + aes(x=ENTIDAD, y=n)
+grafico.entidad <- grafico.entidad + geom_point()
+grafico.entidad <- grafico.entidad + xlab("NOMBRE DE LA ENTIDAD EVALUADA")
+grafico.entidad <- grafico.entidad + ylab("CANTIDAD DE ESCUELAS")
+grafico.entidad <- grafico.entidad + ggtitle("ESCUELAS EVALUADAS EN LA PRUEBA PLANEA", subtitle = "(2017)")
+grafico.entidad <- grafico.entidad  + theme(axis.text = element_text(angle=90))
+
+grafico.entidad
+```
+
+
+```{r graficoEntidadTurno}
+g.e.t <- ggplot(total.entidades.turno)
+g.e.t <- g.e.t + aes(x=ENTIDAD, y=n , fill=TURNO)
+g.e.t <- g.e.t + geom_col()
+g.e.t <- g.e.t + theme(axis.text = element_text(angle=90))
+g.e.t
+```
+
+```{r graficoEntidadTurno2}
+g.e.t2 <- ggplot(total.entidad)
+g.e.t2 <- g.e.t2 + aes(x="", y=round(porcentaje, 1), fill=ENTIDAD)
+g.e.t2 <- g.e.t2 + geom_bar(stat = "identity", color = "white")
+g.e.t2 <- g.e.t2 + xlab("Porcentaje")
+g.e.t2 <- g.e.t2 + ggtitle("Proporcion de escuelas evaluadas por entidad")
+g.e.t2
+```
+
+```{r graficoEntidadTurno3}
+gp3 <- ggplot (total.entidad)
+gp3 <- gp3 + aes( x="", y= round(porcentaje,2), fill=ENTIDAD)
+gp3 <- gp3 + geom_bar(stat="identity", color ="white")
+gp3 <- gp3 + coord_polar(theta = "y")
+gp3 <- gp3 + xlab("Porcentaje")
+gp3 <- gp3 + ggtitle("Proporción de escuelas evaluadas por entidad")
+
+# Con etiquetas de porcentajes
+gp3 <- gp3 + geom_text(aes(label = round(porcentaje,2)), position = position_stack(vjust=0.5), color = "white", size = 6)+ coord_polar(theta="y")
+# Agregamos tema
+#gp3 <- gp3 + theme_lab()
+gp3 
+```
+```{r temaGraficos}
+theme_lab <- function(){
+  theme_grey(base_size = 10, base_family = "sans") %+replace% 
+    theme(
+      # plot margin
+      plot.margin = unit(rep(0.5, 4), "cm"),
+      # plot background and border
+      plot.background = element_blank(),
+      panel.background = element_blank(),
+      panel.border = element_blank(),
+      # grid lines
+      panel.grid.major.x = element_blank(),
+      panel.grid.major.y = element_line(size = 0.5, color = "#cbcbcb"), 
+      panel.grid.minor = element_blank(),
+      # axis ticks and lines
+      axis.ticks = element_blank(),
+      axis.line = element_blank(),
+      # title, subtitle and caption
+      plot.title = element_text(size = 19, face = "bold", colour = "#757575", hjust = 0),
+      plot.subtitle = element_text(size = 12, colour = "#757575", hjust = 0, margin = margin(9, 0, 9, 0)),
+      plot.caption = element_text(size = 10, color = "grey50", hjust = 1, margin = margin(t = 15)),
+      # axes titles
+      axis.title = element_text(colour = "#757575", hjust = 1),
+      axis.text.x = element_text(margin = margin(b = 7)),
+      axis.text.y = element_text( margin = margin(l = 7)),
+      # legend
+      legend.position = "top",
+      legend.background = element_blank(),
+      legend.key = element_blank(),
+      legend.title = element_text(size = 12, colour = "#757575"),
+      legend.text.align = 0,
+      legend.text = element_text(size = 14, colour = "#757575"),
+      # facetting
+      strip.background = element_rect(fill = "transparent", colour = NA),
+      strip.text = element_text(size = 12, face = "bold", colour = "#757575", hjust = 0)
+    )
+}
+```
+
+```{r nivelLogroMatematicas-renombrar}
+library(readr)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+
+names(datos.generales)
+names(encabezados_dataframe)
+# Renombrar nivel de logor en matematicas
+datos.generales <-rename(datos.generales, nivel.matematicasI = "CANTIDAD DE ALUMNOS EN LA ESCUELA EN CADA NIVEL1 MATEMATICAS")
+datos.generales <- rename(datos.generales, nivel.matematicasII = "CANTIDAD DE ALUMNOS EN LA ESCUELA EN CADA NIVEL2 MATEMATICAS...38")
+datos.generales <- rename(datos.generales, nivel.matematicasIII = "CANTIDAD DE ALUMNOS EN LA ESCUELA EN CADA NIVEL2 MATEMATICAS...39" )
+datos.generales <- rename(datos.generales, nivel.matematicasIV = "CANTIDAD DE ALUMNOS EN LA ESCUELA EN CADA NIVEL4 MATEMATICAS")
+
+```
+
+```{r nivelLogroLenguaje-renombrar}
+
+datos.generales <- rename(datos.generales, nivel.lenguajeI  = "CANTIDAD DE ALUMNOS COMUNICACION LOGRO1")
+datos.generales <- rename(datos.generales, nivel.lenguajeII  = "CANTIDAD DE ALUMNOS COMUNICACION LOGRO2" )
+datos.generales <- rename(datos.generales, nivel.lenguajeIII  = "CANTIDAD DE ALUMNOS COMUNICACION LOGRO3"  )
+datos.generales <- rename(datos.generales, nivel.lenguajeIV  ="CANTIDAD DE ALUMNOS COMUNICACION LOGRO4" )
+names(datos.generales)
+
+```
+
+
+```{r nivelLogroMatematicas}
+grafico.nivel.logro <- datos.generales %>%
+  group_by(ENTIDAD) %>%
+  summarise(suma.nivelI = sum(nivel.matematicasI),
+            suma.nivelII = sum(nivel.matematicasII),
+            suma.nivelIII = sum(nivel.matematicasIII),
+            suma.nivelIV = sum(nivel.matematicasIV)) %>% as.data.frame()
+grafico.nivel.logro
+
+grafico.nivel.logro2 <- datos.generales %>%
+  group_by(ENTIDAD) %>%
+  summarise(suma.nivelI = sum(nivel.matematicasI),
+            suma.nivelII = sum(nivel.matematicasII),
+            suma.nivelIII = sum(nivel.matematicasIII),
+            suma.nivelIV = sum(nivel.matematicasIV))  %>%
+ as.data.frame()
+
+grafico.nivel.logro2
+
+seleccionar <- select(grafico.nivel.logro2, ENTIDAD, suma.nivelIII)
+seleccionar <- grafico.nivel.logro2 %>% select (ENTIDAD, cantidad = suma.nivelIII)
+seleccionar
+
+concatenar <- rbind(
+  mutate(select(grafico.nivel.logro2,entidad = ENTIDAD, cantidad= suma.nivelI),nivel.matematicas = "I"), 
+  mutate(select(grafico.nivel.logro2,entidad= ENTIDAD, cantidad= suma.nivelII), nivel.matematicas = "II"),
+  mutate(select(grafico.nivel.logro2,entidad = ENTIDAD, cantidad= suma.nivelIII),nivel.matematicas = "III"),
+  mutate(select(grafico.nivel.logro2,entidad = ENTIDAD, cantidad= suma.nivelIV),nivel.matematicas = "IV") )
+
+gp4 <- ggplot (concatenar)
+gp4 <- gp4 + aes( x=entidad, y= cantidad, fill=entidad)
+gp4 <- gp4 + geom_bar(stat="identity", color ="white")
+gp4 <- gp4 + xlab("Cantidad")
+gp4 <- gp4 + ggtitle("Nivel de logro MATEMATICAS por escuela")
+gp4 <- gp4 + theme(axis.text = element_text(angle=90))
+
+gp4
+```
+
+```{r nivelLogroLenguaje}
+grafico.nivel.lenguaje <- datos.generales %>% 
+  group_by(region, ENTIDAD) %>%
+  summarise(suma.lenguaje.nivelI = sum(nivel.lenguajeI),
+            suma.lenguaje.nivelII = sum(nivel.lenguajeII),
+            suma.lenguaje.nivelIII = sum(nivel.lenguajeIII),
+            suma.lenguaje.nivelIV = sum(nivel.lenguajeIV))  %>%
+ as.data.frame()
+grafico.nivel.lenguaje
+
+concatenar.lenguaje <- rbind(
+  mutate(select(grafico.nivel.lenguaje, region, entidad=ENTIDAD, cantidad=suma.lenguaje.nivelI), nivel="I", area = "LENGUAJE Y COMUNICACION"),
+  mutate(select(grafico.nivel.lenguaje, region, entidad=ENTIDAD, cantidad=suma.lenguaje.nivelII), nivel="II", area = "LENGUAJE Y COMUNICACION"),
+  mutate(select(grafico.nivel.lenguaje, region, entidad=ENTIDAD, cantidad=suma.lenguaje.nivelIII), nivel="III", area = "LENGUAJE Y COMUNICACION"),
+  mutate(select(grafico.nivel.lenguaje, region, entidad=ENTIDAD, cantidad=suma.lenguaje.nivelIV), nivel="IV", area = "LENGUAJE Y COMUNICACION"))
+)
+concatenar.lenguaje
+
+```
+```{r dataFrameRegionesMatemáticas}
+nivel.region <- datos.generales %>%
+  group_by(region, ENTIDAD) %>%
+  summarise(suma.nivelI = sum(nivel.matematicasI),
+            suma.nivelII = sum(nivel.matematicasII),
+            suma.nivelIII = sum(nivel.matematicasIII),
+            suma.nivelIV = sum(nivel.matematicasIV))  %>%
+ as.data.frame()
+
+concatenar.matematicas <- rbind(mutate(select(nivel.region,region,entidad = ENTIDAD, cantidad= suma.nivelI), nivel = "I", area ="MATEMATICAS"), 
+                              mutate(select(nivel.region, region, entidad= ENTIDAD, cantidad= suma.nivelII), nivel = "II", area ="MATEMATICAS"),
+                              mutate(select(nivel.region,region, entidad = ENTIDAD, cantidad= suma.nivelIII),nivel = "III", area ="MATEMATICAS"),
+                              mutate(select(nivel.region,region,entidad = ENTIDAD, cantidad= suma.nivelIV),nivel = "IV", area ="MATEMATICAS") )
+concatenar.matematicas
+```
+
+```{r concatenarMatematicas-Lenguaje}
+grafico.nivel.region <- rbind(concatenar.matematicas, concatenar.lenguaje )
+grafico.nivel.region
+```
+
+
+```{r graficosRegiones-Matematicas}
+gp5 <- ggplot(select(filter(grafico.nivel.region, area=="MATEMATICAS"), region, entidad, cantidad, nivel))
+gp5 <- gp5 + aes(x=entidad, y=cantidad, fill=nivel)
+gp5 <- gp5 + geom_bar(stat = "identity", color="white")
+gp5 <- gp5 + facet_wrap(region ~ .,scales="free_x")
+gp5 <- gp5 + guides(x=guide_axis(angle=90,))
+gp5 <- gp5 + theme(strip.text.x = element_text(size=10, angle = 0, face= "bold"), axis.title.x = element_text(size = 6))
+gp5 <- gp5 + theme(axis.text = element_text(angle=90))
+gp5 <- gp5 + ggtitle("NIVEL DE LOGRO EN MATEMATICAS POR ENTIDAD EN LAS 5 REGIONES")
+gp5
+
+```
+
+```{r graficasAreasRegiones}
+gp6 <- ggplot(grafico.nivel.region)
+gp6 <- gp6 + aes(x=entidad, y=cantidad, color=nivel, shape=area)
+gp6 <- gp6 + geom_point()
+gp6 <- gp6 + facet_wrap(region~.,scales="free_x")
+gp6 <- gp6 + guides(x=guide_axis(angle=90))
+gp6 <- gp6 + scale_color_discrete(name="NIVEL DE LOGRO")
+gp6 <- gp6 + scale_color_discrete(name="AREA DE CONOCIMIENTO")
+gp6 <- gp6 + theme(strip.text.x = element_text(size=10, angle=0, face="bold"), axis.title.x = element_text(size=6))
+gp6
+
+```
+
+```{r graficosregiones}
+gp7 <- ggplot(arrange(group_by(grafico.nivel.region, region, nivel, area), desc(cantidad)))
+gp7 <- gp7 + aes(x=region, y=cantidad, color=area)
+gp7 <- gp7 + geom_boxplot()
+gp7 <- gp7 + facet_wrap(nivel~.,scales = "free_x")
+gp7
+```
+
+
+```{r TODO}
+# Ahora realiza lo anterior con porcentajes, del total de niños evaluados por el área de conocimiento (100%), cuántos(%) en nivel I, nivel II, nivel III, nivel IV
+
+# Compara por tipo de sostenimiento y por subsistema
+
+View(datos.generales)

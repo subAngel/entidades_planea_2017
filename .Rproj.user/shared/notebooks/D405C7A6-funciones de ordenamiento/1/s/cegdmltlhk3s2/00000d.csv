@@ -1,0 +1,14 @@
+"0","gp3 <- ggplot (total.entidad)
+gp3 <- gp3 + aes( x="""", y= round(porcentaje,2), fill=ENTIDAD)
+gp3 <- gp3 + geom_bar(stat=""identity"", color =""white"")
+gp3 <- gp3 + coord_polar(theta = ""y"")
+gp3 <- gp3 + xlab(""Porcentaje"")
+gp3 <- gp3 + ggtitle(""Proporción de escuelas evaluadas por entidad"")
+
+# Con etiquetas de porcentajes
+gp3 <- gp3 + geom_text(aes(label = round(porcentaje,2)), position = position_stack(vjust=0.5), color = ""white"", size = 6)+ coord_polar(theta=""y"")
+"
+"2","[38;5;254mCoordinate system already present. Adding new coordinate system, which will replace the existing one.[39m"
+"0","# Agregamos tema"
+"0","#gp3 <- gp3 + theme_lab()"
+"0","gp3 "

@@ -1,0 +1,5 @@
+"0","datos.generales <- rename(datos.generales, claveEscuela = claveescuela )
+"
+"2","Error in rename(datos.generales, claveEscuela = claveescuela) : 
+  object 'datos.generales' not found
+"
